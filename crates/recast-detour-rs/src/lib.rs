@@ -392,16 +392,8 @@ impl RecastQuery {
         };
         path.truncate(count as usize);
 
-        if status & DT_FAILURE != 0 {
-            Err(Error::FindPathError("FAIL_TO_FIND_PATH".to_owned()))
-        } else if status & DT_INVALID_PARAM != 0 {
-            Err(Error::FindPathError("INVALID_PARAM".to_owned()))
-        } else if status & DT_BUFFER_TOO_SMALL != 0 {
-            Err(Error::FindPathError("BUFFER_TOO_SMALL".to_owned()))
-        } else if status & DT_OUT_OF_NODES != 0 {
-            Err(Error::FindPathError("OUT_OF_NODES".to_owned()))
-        } else if status & DT_PARTIAL_RESULT != 0 {
-            Err(Error::PartialResult)
+        if let Some(err) = status.to_error() {
+            Err(err)
         } else if path.len() == 0 {
             Err(Error::FindPathError("NoPath".to_owned()))
         } else {
@@ -428,18 +420,12 @@ impl RecastQuery {
                         dtStraightPathOptions_DT_STRAIGHTPATH_ALL_CROSSINGS,
                     )
                 };
+                straight_path.truncate(num_straight_polys as usize * 3);
+                straight_polys.truncate(num_straight_polys as usize);
 
-                if status & DT_FAILURE != 0 {
-                    Err(Error::FindPathError("FAIL_TO_FIND_PATH".to_owned()))
-                } else if status & DT_INVALID_PARAM != 0 {
-                    Err(Error::FindPathError("INVALID_PARAM".to_owned()))
-                } else if status & DT_BUFFER_TOO_SMALL != 0 {
-                    Err(Error::FindPathError("BUFFER_TOO_SMALL".to_owned()))
-                } else if status & DT_OUT_OF_NODES != 0 {
-                    Err(Error::FindPathError("OUT_OF_NODES".to_owned()))
-                } else if status & DT_PARTIAL_RESULT != 0 {
-                    Err(Error::PartialResult)
-                } else if path.len() == 0 {
+                if let Some(err) = status.to_error() {
+                    Err(err)
+                } else if straight_path.len() == 0 {
                     Err(Error::FindPathError("NoPath".to_owned()))
                 } else {
                     let mut res = Vec::with_capacity(num_straight_polys as usize);
@@ -524,6 +510,28 @@ impl RecastQuery {
 
 pub fn version() -> String {
     "0.0.1".to_owned()
+}
+
+trait ToError {
+    fn to_error(self) -> Option<Error>;
+}
+
+impl ToError for dtStatus {
+    fn to_error(self) -> Option<Error> {
+        if self & DT_FAILURE != 0 {
+            Some(Error::FindPathError("FAIL_TO_FIND_PATH".to_owned()))
+        } else if self & DT_INVALID_PARAM != 0 {
+            Some(Error::FindPathError("INVALID_PARAM".to_owned()))
+        } else if self & DT_BUFFER_TOO_SMALL != 0 {
+            Some(Error::FindPathError("BUFFER_TOO_SMALL".to_owned()))
+        } else if self & DT_OUT_OF_NODES != 0 {
+            Some(Error::FindPathError("OUT_OF_NODES".to_owned()))
+        } else if self & DT_PARTIAL_RESULT != 0 {
+            Some(Error::PartialResult)
+        } else {
+            None
+        }
+    }
 }
 
 #[cfg(test)]
