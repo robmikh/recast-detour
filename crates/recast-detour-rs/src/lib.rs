@@ -420,8 +420,8 @@ impl RecastQuery {
                         end_p.0.as_ptr(),
                         path.as_ptr(),
                         path.len() as i32,
-                    straight_path.as_mut_ptr(),
-            &mut flags as *mut _,
+                        straight_path.as_mut_ptr(),
+                        &mut flags as *mut _,
                         straight_polys.as_mut_ptr(),
                         &mut num_straight_polys as *mut _,
                         straight_polys.len() as i32,
@@ -446,7 +446,7 @@ impl RecastQuery {
                     for chunk in straight_path.chunks_exact(3) {
                         res.push((chunk[0], chunk[1], chunk[2]).into());
                     }
-    
+
                     Ok(res)
                 }
             }

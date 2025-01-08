@@ -95,7 +95,7 @@ impl NavObjFile {
                 }
                 _ => {
                     let _ = parse_data_line(&mut nav_file, &line);
-                },
+                }
             }
         }
 
