@@ -310,7 +310,9 @@ impl RecastQuery {
             m_excludeFlags: 0,
         };
 
-        let mut path = vec![0; 100];
+        let max_polys = 256;
+
+        let mut path = vec![0; max_polys];
         let mut count = 0;
 
         let status = unsafe {
@@ -322,7 +324,7 @@ impl RecastQuery {
                 &filter,
                 path.as_mut_ptr(),
                 &mut count,
-                100,
+                path.len() as i32,
             )
         };
         path.truncate(count as usize);
@@ -353,6 +355,100 @@ impl RecastQuery {
                 }
 
                 Ok(res)
+            }
+        }
+    }
+
+    pub fn find_straight_path(&self, start: Point, end: Point, r: f32) -> Result<Vec<Point>> {
+        let (start_p, start_poly) = self.find_poly(start, r)?;
+        let (end_p, end_poly) = self.find_poly(end, r)?;
+
+        if start_poly == end_poly {
+            return Ok(vec![end_p]);
+        }
+
+        let filter = dtQueryFilter {
+            m_areaCost: [1.0; 64],
+            m_includeFlags: POLYFLAGS_WALK,
+            m_excludeFlags: 0,
+        };
+
+        let max_polys = 256;
+
+        let mut path = vec![0; max_polys];
+        let mut count = 0;
+
+        let status = unsafe {
+            (*self.q.as_ptr()).findPath(
+                start_poly,
+                end_poly,
+                start_p.0.as_ptr(),
+                end_p.0.as_ptr(),
+                &filter,
+                path.as_mut_ptr(),
+                &mut count,
+                path.len() as i32,
+            )
+        };
+        path.truncate(count as usize);
+
+        if status & DT_FAILURE != 0 {
+            Err(Error::FindPathError("FAIL_TO_FIND_PATH".to_owned()))
+        } else if status & DT_INVALID_PARAM != 0 {
+            Err(Error::FindPathError("INVALID_PARAM".to_owned()))
+        } else if status & DT_BUFFER_TOO_SMALL != 0 {
+            Err(Error::FindPathError("BUFFER_TOO_SMALL".to_owned()))
+        } else if status & DT_OUT_OF_NODES != 0 {
+            Err(Error::FindPathError("OUT_OF_NODES".to_owned()))
+        } else if status & DT_PARTIAL_RESULT != 0 {
+            Err(Error::PartialResult)
+        } else if path.len() == 0 {
+            Err(Error::FindPathError("NoPath".to_owned()))
+        } else {
+            if path.len() == 1 {
+                // Same Poly, so just return the next point
+                Ok(vec![end_p])
+            } else {
+                // Find a straight path
+                let mut straight_path = vec![0.0f32; max_polys * 3];
+                let mut straight_polys = vec![0u32; max_polys];
+                let mut num_straight_polys = 0;
+                let status = unsafe {
+                    let mut flags = 0u8;
+                    (*self.q.as_ptr()).findStraightPath(
+                        start_p.0.as_ptr(),
+                        end_p.0.as_ptr(),
+                        path.as_ptr(),
+                        path.len() as i32,
+                    straight_path.as_mut_ptr(),
+            &mut flags as *mut _,
+                        straight_polys.as_mut_ptr(),
+                        &mut num_straight_polys as *mut _,
+                        straight_polys.len() as i32,
+                        dtStraightPathOptions_DT_STRAIGHTPATH_ALL_CROSSINGS,
+                    )
+                };
+
+                if status & DT_FAILURE != 0 {
+                    Err(Error::FindPathError("FAIL_TO_FIND_PATH".to_owned()))
+                } else if status & DT_INVALID_PARAM != 0 {
+                    Err(Error::FindPathError("INVALID_PARAM".to_owned()))
+                } else if status & DT_BUFFER_TOO_SMALL != 0 {
+                    Err(Error::FindPathError("BUFFER_TOO_SMALL".to_owned()))
+                } else if status & DT_OUT_OF_NODES != 0 {
+                    Err(Error::FindPathError("OUT_OF_NODES".to_owned()))
+                } else if status & DT_PARTIAL_RESULT != 0 {
+                    Err(Error::PartialResult)
+                } else if path.len() == 0 {
+                    Err(Error::FindPathError("NoPath".to_owned()))
+                } else {
+                    let mut res = Vec::with_capacity(num_straight_polys as usize);
+                    for chunk in straight_path.chunks_exact(3) {
+                        res.push((chunk[0], chunk[1], chunk[2]).into());
+                    }
+    
+                    Ok(res)
+                }
             }
         }
     }
