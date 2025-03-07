@@ -417,7 +417,9 @@ impl RecastQuery {
                         straight_polys.as_mut_ptr(),
                         &mut num_straight_polys as *mut _,
                         straight_polys.len() as i32,
-                        dtStraightPathOptions_DT_STRAIGHTPATH_ALL_CROSSINGS,
+                        // For some reason, bindings on macOS think this constant is a c_uint...?
+                        // But it's properly a c_int on Windows...?
+                        dtStraightPathOptions_DT_STRAIGHTPATH_ALL_CROSSINGS as i32,
                     )
                 };
                 straight_path.truncate(num_straight_polys as usize * 3);
