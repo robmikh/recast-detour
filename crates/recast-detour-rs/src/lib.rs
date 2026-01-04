@@ -2,6 +2,7 @@ use recastnavigation_sys::*;
 use std::collections::HashMap;
 use std::ptr;
 
+pub mod crowd;
 mod nav_obj;
 mod util;
 
@@ -100,6 +101,12 @@ impl Point {
 impl From<(f32, f32, f32)> for Point {
     fn from(f: (f32, f32, f32)) -> Point {
         Point::new(f)
+    }
+}
+
+impl From<[f32; 3]> for Point {
+    fn from(value: [f32; 3]) -> Self {
+        Point::new((value[0], value[1], value[2]))
     }
 }
 
