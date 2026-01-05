@@ -177,6 +177,23 @@ impl DetourCrowd {
         }
         Ok(())
     }
+
+    pub fn update_agent_params(
+        &mut self,
+        index: DetourCrowdAgentIndex,
+        params: &dtCrowdAgentParams,
+    ) {
+        unsafe {
+            self.crowd
+                .as_mut()
+                .updateAgentParameters(index.0, params as *const _);
+        }
+    }
+
+    pub fn get_agent_params(&mut self, index: DetourCrowdAgentIndex) -> Option<dtCrowdAgentParams> {
+        let agent = self.get_agent(index)?;
+        Some(agent.agent.params)
+    }
 }
 
 pub struct DetourCrowdAgent<'a> {
